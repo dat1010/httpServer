@@ -13,7 +13,8 @@
 int lSize = 0;
 
 
-char *getHtmlFile(char fileName[]){
+char *getHtmlFile(char fileName[])
+{
     FILE *fp;
     char *buffer;
     
@@ -25,7 +26,7 @@ char *getHtmlFile(char fileName[]){
     rewind( fp );
     
     buffer = calloc( 1, lSize+1 );
-    if( !buffer ) fclose(fp),fputs("memory alloc fails",stderr),exit(1);
+    if( !buffer ) fclose(fp),fputs("Memory alloc fails",stderr),exit(1);
     
     /* copy the file into the buffer */
     if( 1!=fread( buffer , lSize, 1 , fp) )
@@ -45,53 +46,48 @@ char* getTime(){
 
 
 
-int main()
+int main(int argc, char *argv[])
 {
-
+    int port = 8080;
     int one = 1, client_fd;
     struct sockaddr_in svr_addr, cli_addr;
     socklen_t sin_len = sizeof(cli_addr);
-    char *buffer = getHtmlFile("index.html");
-
     
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
-        err(1, "can't open socket");
-
+        err(1, "Can't open socket");
+    
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int));
-
-    int port = 8080;
+    
+    
     svr_addr.sin_family = AF_INET;
     svr_addr.sin_addr.s_addr = INADDR_ANY;
     svr_addr.sin_port = htons(port);
-
+    
     if (bind(sock, (struct sockaddr *) &svr_addr, sizeof(svr_addr)) == -1) {
         close(sock);
         err(1, "Can't bind");
     }
-
+    
     listen(sock, 5);
     while (1) {
         client_fd = accept(sock, (struct sockaddr *) &cli_addr, &sin_len);
         
-        if(client_fd < 0)
-        {
+        if (client_fd < 0) {
             printf("Could not connect to Client.");
             return 1;
         }
+        printf("Got connection\n");
+        printf("%s\n",getTime());
         
-        printf("Client Connected\n");
-        
-        printf("Time is: [%s]\n", getTime());
-
         if (client_fd == -1) {
             perror("Can't accept");
             continue;
         }
         
-        send(client_fd, buffer, lSize,0); /*-1:'\0'*/
+        write(client_fd, getHtmlFile("index.html"), lSize-1);
         close(client_fd);
-  }
+    }
     
-    free(buffer);
+    return 1;
 }
