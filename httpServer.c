@@ -13,15 +13,19 @@
 #include <stdlib.h>
 
 int lSize = 0;
+void notFound(int);
 
 
 char *getHtmlFile(char fileName[])
 {
-    FILE *fp;
+    FILE *fp = NULL;
     char *buffer;
 
     fp = fopen ( fileName , "rb" );
-    if( !fp ) perror(fileName),exit(1);
+    if( fp == NULL) {
+      //404 Error
+      return NULL;
+    }
 
     fseek( fp , 0L , SEEK_END);
     lSize = ftell( fp );
@@ -37,6 +41,32 @@ char *getHtmlFile(char fileName[])
     return buffer;
 }
 
+void notFound(int client)
+{
+ char buf[1024];
+ lSize = 0;
+ sprintf(buf, "HTTP/1.0 404 NOT FOUND\r\n");
+ send(client, buf, strlen(buf), 0);
+ sprintf(buf, "Content-Type: text/html\r\n");
+ send(client, buf, strlen(buf), 0);
+ sprintf(buf, "\r\n");
+ send(client, buf, strlen(buf), 0);
+ send(client, getHtmlFile("404Error.html"), lSize -1  , 0);
+}
+
+void headers(int client, const char *filename)
+{
+ char buf[1024];
+ //(void)filename;  /* could use filename to determine file type */
+
+ strcpy(buf, "HTTP/1.0 200 OK\r\n");
+ send(client, buf, strlen(buf), 0);
+ sprintf(buf, "Content-Type: text/html\r\n");
+ send(client, buf, strlen(buf), 0);
+ strcpy(buf, "\r\n");
+ send(client, buf, strlen(buf), 0);
+}
+
 char* getTime(){
     char buf[1000];
     time_t now = time(0);
@@ -45,20 +75,6 @@ char* getTime(){
     return buf;
 }
 
-void headers(int client, const char *filename)
-{
- char buf[1024];
- (void)filename;  /* could use filename to determine file type */
-
- strcpy(buf, "HTTP/1.0 200 OK\r\n");
- send(client, buf, strlen(buf), 0);
- //strcpy(buf, SERVER_STRING);
- send(client, buf, strlen(buf), 0);
- sprintf(buf, "Content-Type: text/html\r\n");
- send(client, buf, strlen(buf), 0);
- strcpy(buf, "\r\n");
- send(client, buf, strlen(buf), 0);
-}
 
 
 int main(int argc, char *argv[])
@@ -100,6 +116,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
+
         char line[5000];
         recv(client_fd,line,5000,0);
         char* token = strtok(line, " ");
@@ -107,17 +124,35 @@ int main(int argc, char *argv[])
         printf ("got from client: %s \n",token);
         char filep [5000];
         char cpytkn[5000];
-        strcpy (cpytkn, token);
-        memcpy (filep, &cpytkn[1], 4999);
-        printf ("filep: %s \n", filep);
-        if ( strcmp(filep, "") == 0){
+        if(token != NULL)
+        {
+
+          printf("You shall not pass\n");
+          strcpy (cpytkn, token);
+          memcpy (filep, &cpytkn[1], 4999);
+        }
+
+
+
+        if ( strcmp(filep, "") == 0)
+        {
           headers(client_fd,"index.html");
           send(client_fd, getHtmlFile("index.html"), lSize -1  , 0);
         }
-        else {
-          send(client_fd, getHtmlFile(filep), lSize -1  , 0);
+        else
+        {
+          char* fileString = getHtmlFile(filep);
+          if (fileString != NULL)
+          {
+            headers(client_fd,fileString);
+            send(client_fd, fileString, lSize -1  , 0);
+          }else
+          {
+            printf("404\n");
+            notFound(client_fd);
+          }
         }
-          close(client_fd);
+        close(client_fd);
     }
 
     return 1;
