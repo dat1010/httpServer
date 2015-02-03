@@ -1,9 +1,27 @@
 <html>
-  <head></head>
-  <body>
-    <h1>Test 1 2 3 <h1>
-      <p>
-        This is a web page for cool things.
-      </p>
+  <head>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" type="text/css" href="common.css">
+  </head>
+
+
+  <body onload = "homePage();" >
+    <nav role="navigation" class="navbar navbar-default">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <!-- Collection of nav links and other content for toggling -->
+    <div id="navbarCollapse" class="collapse navbar-collapse">
+        <ul class="nav navbar-nav">
+            <li id="homeP" ><a onclick="homePage();">Home</a></li>
+            <li id = "aboutP"><a onclick="aboutPage();" >About Us</a></li>
+        </ul>
+    </div>
+</nav>
+      <div id="pageBody" class = "pageBody"></div>
   </body>
 </html>
