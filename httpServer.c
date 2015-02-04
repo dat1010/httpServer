@@ -69,7 +69,8 @@ void headers(int client, const char *filename)
  send(client, buf, strlen(buf), 0);
 }
 
-char* getTime(){
+char* getTime()
+{
     char buf[1000];
     time_t now = time(0);
     struct tm tm = *gmtime(&now);
@@ -90,7 +91,7 @@ int main(int argc, char *argv[])
     char * logfile;
     int log_f = 0;
     FILE *f;
-    
+
     if ( argc > 2){
         int i = 1;
         while(i < argc - 1){
@@ -110,7 +111,7 @@ int main(int argc, char *argv[])
                     return 1;
                 }
             }
-            i++; 
+            i++;
         }
     }
     int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -164,16 +165,16 @@ int main(int argc, char *argv[])
 
         char line[5000];
         recv(client_fd,line,5000,0);
-        
+
         if(strncmp(line, "GET ", 4) != 0)
         {
 			headers(client_fd,"");
 			send(client_fd, getHtmlFile("501Error.html"), lSize -1  , 0);
-			
+
 		}
         char* token = strtok(line, " ");
         token = strtok(NULL," ");
-        
+
         if ( log_f == 1){
             fprintf (f,"got from client: %s \n",token);
         }
@@ -192,7 +193,7 @@ int main(int argc, char *argv[])
         {
           headers(client_fd,"index.html");
           send(client_fd, getHtmlFile("index.html"), lSize -1  , 0);
-            
+
         }
         else
         {
@@ -208,33 +209,28 @@ int main(int argc, char *argv[])
               fileString = getHtmlFile(strcat(strcat(root,"/"),filep));
           }
           else {
-              printf ("here3");
               fileString = getHtmlFile(filep);
           }
-            
+
           if (fileString != NULL)
           {
 			  int f_block_sz;
-              printf ("here4");
               char * dot = strrchr(filep, '.');
               printf ("dot: %s \n", dot);
               if ( strcmp(dot, ".html")==0 ||strcmp(dot, ".js")==0||strcmp(dot, ".css")==0||strcmp(filep, "darknight.jpeg") == 0){
-                  printf ("here5");
                   headers(client_fd,fileString);
                   send(client_fd, fileString, lSize -1  , 0);
 			  }
               else{
-				  printf("here6");
 				  FILE* fp = fopen (filep, "r");
 				  char sdbuf[1024*1024];
 			      bzero (sdbuf, 1024*1024);
 				  f_block_sz = fread (sdbuf,sizeof(char),1024 * 1024,fp);
 					send ( client_fd, sdbuf, f_block_sz, 0);
-				  
-			} 
-              
+
+			}
+
           }else{
-              printf ("here7");
               if (log_f == 1){
                   fprintf(f,"404\n");
               }else{
