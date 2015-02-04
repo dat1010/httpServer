@@ -23,6 +23,7 @@ char *getHtmlFile(char fileName[])
 
     fp = fopen ( fileName , "rb" );
     if( fp == NULL) {
+        printf ("null");
       //404 Error
       return NULL;
     }
@@ -40,6 +41,7 @@ char *getHtmlFile(char fileName[])
     fclose(fp);
     return buffer;
 }
+
 
 void notFound(int client)
 {
@@ -83,7 +85,34 @@ int main(int argc, char *argv[])
     int one = 1, client_fd;
     struct sockaddr_in svr_addr, cli_addr;
     socklen_t sin_len = sizeof(cli_addr);
-
+    char * root;
+    int root_given = 0;
+    char * logfile;
+    int log_f = 0;
+    FILE *f;
+    
+    if ( argc > 2){
+        int i = 1;
+        while(i < argc - 1){
+            if (strcmp(argv[i], "-p") == 0){
+                port = atoi(argv[i+1]);
+            }
+            else if (strcmp(argv[i], "-docroot") == 0){
+                root_given = 1;
+                root = argv[i+1];
+            }
+            else if (strcmp(argv[i], "-logfile") == 0){
+                log_f = 1;
+                logfile = argv[i+1];
+                f = fopen(logfile, "a");
+                if (f == NULL){
+                    printf ("File not found.");
+                    return 1;
+                }
+            }
+            i++; 
+        }
+    }
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
         err(1, "Can't open socket");
@@ -105,52 +134,117 @@ int main(int argc, char *argv[])
         client_fd = accept(sock, (struct sockaddr *) &cli_addr, &sin_len);
 
         if (client_fd < 0) {
-            printf("Could not connect to Client.");
+            if ( log_f == 1){
+                fprintf(f,"Could not connect to Client.");
+            }
+            else{
+                printf("Could not connect to Client.");
+            }
             return 1;
         }
-        printf("Got connection\n");
-        printf("%s\n",getTime());
+        if ( log_f == 1){
+            fprintf(f,"Got connection\n");
+            fprintf(f,"%s\n",getTime());
+        }
+        else{
+            printf("Got connection\n");
+            printf("%s\n",getTime());
+        }
 
         if (client_fd == -1) {
-            perror("Can't accept");
+            if ( log_f == 1){
+                fprintf (f,"Can't accept");
+            }
+            else {
+                perror("Can't accept");
+            }
             continue;
         }
 
 
         char line[5000];
         recv(client_fd,line,5000,0);
+        
+        if(strncmp(line, "GET ", 4) != 0)
+        {
+			headers(client_fd,"");
+			send(client_fd, getHtmlFile("501Error.html"), lSize -1  , 0);
+			
+		}
         char* token = strtok(line, " ");
         token = strtok(NULL," ");
-        printf ("got from client: %s \n",token);
+        
+        if ( log_f == 1){
+            fprintf (f,"got from client: %s \n",token);
+        }
+        else{
+            printf ("got from client: %s \n",token);
+        }
         char filep [5000];
         char cpytkn[5000];
         if(token != NULL)
         {
-
-          printf("You shall not pass\n");
           strcpy (cpytkn, token);
           memcpy (filep, &cpytkn[1], 4999);
         }
-
-
 
         if ( strcmp(filep, "") == 0)
         {
           headers(client_fd,"index.html");
           send(client_fd, getHtmlFile("index.html"), lSize -1  , 0);
+            
         }
         else
         {
-          char* fileString = getHtmlFile(filep);
+          char* fileString;
+          printf ("here2");
+          if (root_given == 1){
+              if (log_f == 1){
+                  fprintf (f,"the path: %s \n",strcat(strcat(root,"/"),filep));
+              }
+              else {
+                  printf ("the path: %s \n",strcat(strcat(root,"/"),filep));
+              }
+              fileString = getHtmlFile(strcat(strcat(root,"/"),filep));
+          }
+          else {
+              printf ("here3");
+              fileString = getHtmlFile(filep);
+          }
+            
           if (fileString != NULL)
           {
-            headers(client_fd,fileString);
-            send(client_fd, fileString, lSize -1  , 0);
-          }else
-          {
-            printf("404\n");
-            notFound(client_fd);
+			  int f_block_sz;
+              printf ("here4");
+              char * dot = strrchr(filep, '.');
+              printf ("dot: %s \n", dot);
+              if ( strcmp(dot, ".html")==0 ||strcmp(dot, ".js")==0||strcmp(dot, ".css")==0||strcmp(filep, "darknight.jpeg") == 0){
+                  printf ("here5");
+                  headers(client_fd,fileString);
+                  send(client_fd, fileString, lSize -1  , 0);
+			  }
+              else{
+				  printf("here6");
+				  FILE* fp = fopen (filep, "r");
+				  char sdbuf[1024*1024];
+			      bzero (sdbuf, 1024*1024);
+				  f_block_sz = fread (sdbuf,sizeof(char),1024 * 1024,fp);
+					send ( client_fd, sdbuf, f_block_sz, 0);
+				  
+			} 
+              
+          }else{
+              printf ("here7");
+              if (log_f == 1){
+                  fprintf(f,"404\n");
+              }else{
+                  printf("404\n");
+              }
+              notFound(client_fd);
           }
+        }
+        if (log_f == 1){
+            fclose(f);
         }
         close(client_fd);
     }
